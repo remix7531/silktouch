@@ -1,5 +1,5 @@
 # Config for crate-ci/typos (both the `typos` CLI locally via `nix develop`
-# / `just typos`, and crate-ci/typos-action in CI). Entries below are
+# / `just typos`, and crate-ci/typos in CI). Entries below are
 # genuine false positives observed on this codebase's vocabulary, not a
 # blanket suppression -- see comments per entry.
 [default.extend-words]

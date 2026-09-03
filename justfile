@@ -14,7 +14,7 @@
 # `just <recipe>` directly (after installing `just` via
 # taiki-e/install-action) so the two cannot drift. The deny/typos jobs use
 # their dedicated marketplace actions (EmbarkStudios/cargo-deny-action,
-# crate-ci/typos-action) instead, since those provide caching/annotations
+# crate-ci/typos) instead, since those provide caching/annotations
 # a raw command doesn't: `just deny` / `just typos` below are the
 # equivalent raw commands for local use and are kept identical by hand.
 # The nix-build/flake-check CI jobs run `nix build` / `nix flake check`
