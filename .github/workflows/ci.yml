@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUSTFLAGS: -Dwarnings
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  # --- Rust jobs: fast, matrixed, via dtolnay/rust-toolchain. These
+  # verify the crate as `cargo` sees it. They call `just <recipe>` so the
+  # commands they run cannot drift from what `justfile` documents and a
+  # developer runs locally (`nix develop -c just <recipe>`).
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: taiki-e/install-action@just
+      - run: just fmt
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: taiki-e/install-action@just
+      - run: just clippy
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rust:
+          - stable
+          # silktouch is edition 2024 and uses let chains, stabilized in
+          # 1.88: see the CI setup notes for how this was determined.
+          - "1.88"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+      - uses: taiki-e/install-action@just
+      - run: just test
+
+  doc:
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -Dwarnings
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@just
+      - run: just doc
+
+  # --- Supply chain / hygiene jobs. cargo-deny and typos use their
+  # dedicated marketplace actions (caching, annotations) rather than a
+  # `just` call, since those actions do more than run a bare command.
+  # `just deny` / `just typos` are the equivalent raw commands, kept
+  # identical by hand for local use (see the comment at the top of
+  # `justfile`). cargo-machete has no comparable dedicated action, so its
+  # job installs the binary directly and runs `just machete`.
+  cargo-deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: EmbarkStudios/cargo-deny-action@v2
+
+  cargo-machete:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@cargo-machete
+      - uses: taiki-e/install-action@just
+      - run: just machete
+
+  typos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: crate-ci/typos-action@v1
+
+  # --- Nix jobs: verify the flake itself, which the Rust jobs above do
+  # not touch at all (they never invoke `nix build`/`nix flake check`).
+  # postInstall in flake.nix runs the just built binary to generate shell
+  # completions and the man page, so nix-build is a real integration
+  # check: a plain `cargo build` would not catch that breaking.
+  nix-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - run: nix build
+      - name: Assert installed artefacts exist
+        run: |
+          test -x result/bin/silktouch
+          test -f result/share/man/man1/silktouch.1.gz
+          test -f result/share/bash-completion/completions/silktouch.bash
+          test -f result/share/zsh/site-functions/_silktouch
+          test -f result/share/fish/vendor_completions.d/silktouch.fish
+
+  nix-flake-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - run: nix flake check

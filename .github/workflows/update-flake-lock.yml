@@ -1,0 +1,29 @@
+name: update-flake-lock
+
+# Dependabot's `cargo` ecosystem (see .github/dependabot.yml) doesn't know
+# how to parse or update flake.lock: Nix flake inputs aren't a package
+# manifest format it understands. Left alone, flake.lock (and thus the
+# nixpkgs revision the dev shell and `nix build` use) would silently rot
+# forever. This workflow is what keeps it current instead.
+
+on:
+  schedule:
+    - cron: "0 4 * * 1" # weekly, Monday 04:00 UTC
+  workflow_dispatch:
+
+jobs:
+  update-flake-lock:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: DeterminateSystems/update-flake-lock@main
+        with:
+          pr-title: "Update flake.lock"
+          pr-labels: |
+            dependencies
+            nix

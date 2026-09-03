@@ -1,0 +1,10 @@
+{
+  "model": "claude-sonnet-5",
+  "permissions": {
+    "allow": [
+      "Bash(rm:*)",
+      "Bash(pytest:*)"
+    ]
+  },
+  "cleanupPeriodDays": 30
+}

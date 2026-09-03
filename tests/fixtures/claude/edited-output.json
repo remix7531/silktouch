@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git diff:*)",
+      "Bash(npm test:*)",
+      "Bash(rm:*)",
+      "Bash(pytest:*)"
+    ],
+    "deny": []
+  },
+  "editorMode": "vim",
+  "theme": "dark",
+  "model": "claude-sonnet-5",
+  "cleanupPeriodDays": 30
+}

@@ -1,0 +1,59 @@
+[package]
+name = "silktouch"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "GPL-3.0-or-later"
+description = "Bidirectional config fragment merger: combine JSON fragments into one file, and split external edits back into the fragments they came from."
+# repository = "..."   # add once the repo has a remote
+readme = "README.md"
+keywords = ["json", "config", "merge", "dropin", "dotfiles"]
+categories = ["command-line-utilities", "config"]
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "silktouch"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.104"
+clap = { version = "4.6.6", features = ["derive", "unstable-ext"] }
+# unstable-dynamic gates clap_complete::engine (ArgValueCompleter,
+# CompletionCandidate) and clap_complete::CompleteEnv: the dynamic
+# per value completion API used to complete --set/--merge/--catch-all
+# against live data (registry contents, fragment directory listing).
+clap_complete = { version = "4.6.9", features = ["unstable-dynamic"] }
+clap_mangen = "0.3.3"
+etcetera = "0.11.0"
+json-patch = "4.2.0"
+# JSONC comment stripping for source fragments (see src/format.rs::Comments).
+# Chosen over jsonc-parser/json_comments because it is a plain string in,
+# string out transform (no new Value/AST type to bridge back to
+# serde_json::Value) and its state machine is string literal aware, so it
+# does not misinterpret `//` inside `"a//b"` or `"a\\"//b"` as a comment:
+# see format::tests::comment_inside_string_survives_intact. As a side
+# effect it also normalises trailing commas, which JSONC itself does not
+# specify but which this crate allows for free.
+json-strip-comments = "3.1.2"
+serde = { version = "1.0.229", features = ["derive"] }
+# preserve_order is required for deterministic key order, which the merge
+# fold depends on. arbitrary_precision must never be enabled here: it
+# changes serde_json::Value equality, which the delta engine depends on.
+serde_json = { version = "1.0.151", features = ["preserve_order"] }
+shellexpand = "3.1.2"
+tempfile = "3.27.0"
+thiserror = "2.0.20"
+toml = "1.1.5"
+
+[dev-dependencies]
+assert_cmd = "2.2.2"
+predicates = "3.1.4"
+proptest = "1.11.0"
+
+[lints.rust]
+unused_qualifications = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }

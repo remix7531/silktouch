@@ -1,0 +1,72 @@
+# cargo-deny configuration for silktouch. Run locally with `cargo deny
+# check` (available in `nix develop`) or `just deny`. CI runs this via
+# EmbarkStudios/cargo-deny-action in .github/workflows/ci.yml.
+#
+# Generated from `cargo deny init` (cargo-deny 0.20.2) and then trimmed to
+# only the sections this project actually needs, with the license
+# allow-list populated from the real dependency graph (see below).
+
+[graph]
+# silktouch is a CLI built and shipped via the Nix flake for the host
+# platform. It isn't cross-compiled, so there's no need to widen the
+# checked target set beyond the default (whatever `cargo metadata` reports
+# for the current host).
+all-features = true
+
+[output]
+feature-depth = 1
+
+# ---------------------------------------------------------------------------
+# Advisories: RustSec security/unmaintained/yanked advisories.
+# ---------------------------------------------------------------------------
+[advisories]
+version = 2
+yanked = "deny"
+
+# ---------------------------------------------------------------------------
+# Licenses.
+#
+# Allow list built empirically from `cargo metadata --all-features`, i.e.
+# every license actually *chosen* (not just offered as an OR'd option) in
+# this crate's dependency graph today: MIT, Apache-2.0, Unicode-3.0,
+# Unlicense, and the weak copyleft MPL-2.0 (pulled in via `option-ext`, a
+# Windows only transitive dependency of `dirs-sys`/`etcetera`).
+# BSD-2-Clause and LGPL-2.1-or-later each show up only as one arm of an
+# OR'd multi license expression (zerocopy/zerocopy-derive, and r-efi, a
+# WASI target crate not compiled for this host) whose MIT/Apache-2.0 arm
+# already satisfies cargo-deny, so they're deliberately left off this list:
+# cargo-deny warns (license-not-encountered) about allow listed
+# licenses nothing actually resolves to, which is why BSD-2-Clause isn't
+# here even though it's visible in the graph.
+#
+# GPL-3.0-or-later is silktouch's own licence. Its dependencies are all
+# MIT/Apache-2.0/MPL-2.0, which are GPL compatible, so linking them into a
+# GPL binary is fine. The reverse would not be, which is why nothing here
+# is allowed to introduce a stricter copyleft.
+[licenses]
+version = 2
+allow = [
+    "GPL-3.0-or-later",
+    "MIT",
+    "Apache-2.0",
+    "Unicode-3.0",
+    "Unlicense",
+    "MPL-2.0",
+]
+confidence-threshold = 0.8
+
+# ---------------------------------------------------------------------------
+# Bans: duplicate versions, wildcards, explicitly banned crates.
+# ---------------------------------------------------------------------------
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = false
+
+# ---------------------------------------------------------------------------
+# Sources: only allow crates.io as a registry source.
+# ---------------------------------------------------------------------------
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

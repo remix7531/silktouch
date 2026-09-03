@@ -1,0 +1,13 @@
+# Config for crate-ci/typos (both the `typos` CLI locally via `nix develop`
+# / `just typos`, and crate-ci/typos-action in CI). Entries below are
+# genuine false positives observed on this codebase's vocabulary, not a
+# blanket suppression -- see comments per entry.
+[default.extend-words]
+# "mis-route" / "mis-filed": typos splits hyphenated compounds and flags
+# the "mis" prefix as a typo for "miss"/"mist".
+mis = "mis"
+
+[default.extend-identifiers]
+# `ba`: a local variable name (paired with `aa`) for "b, as an array" in
+# the array-merge comparison logic in src/lib.rs; typos suggests "by"/"be".
+ba = "ba"
