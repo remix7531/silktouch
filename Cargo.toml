@@ -41,7 +41,16 @@ serde = { version = "1.0.229", features = ["derive"] }
 # preserve_order is required for deterministic key order, which the merge
 # fold depends on. arbitrary_precision must never be enabled here: it
 # changes serde_json::Value equality, which the delta engine depends on.
-serde_json = { version = "1.0.151", features = ["preserve_order"] }
+#
+# float_roundtrip is required for law A and law B. Without it serde_json
+# parses floats with a fast path that is not always correctly rounded, so
+# a value like 2.1246358499999998 is read as the double one ULP below it
+# and reserialised, shortest-form, as 2.12463585. That is a *different*
+# double: combine alone silently rewrites it. The corruption is invisible
+# to `diff`, which compares post-parse values and so parses both spellings
+# to the same wrong double and reports agreement. Found by splitting a real
+# ~/.claude.json, whose per-project `lastCost` telemetry hits this.
+serde_json = { version = "1.0.151", features = ["preserve_order", "float_roundtrip"] }
 shellexpand = "3.1.2"
 tempfile = "3.27.0"
 thiserror = "2.0.20"

@@ -531,4 +531,60 @@ mod tests {
     fn comments_default_is_forbid() {
         assert_eq!(Comments::default(), Comments::Forbid);
     }
+
+    /// A float must survive parse -> serialize as the *same* double, or
+    /// `combine` alone silently rewrites values it was only meant to copy,
+    /// breaking law A and law B.
+    ///
+    /// This needs `serde_json`'s `float_roundtrip` feature. Without it the
+    /// parser takes a fast path that is not always correctly rounded:
+    /// `2.1246358499999998` comes back as the double one ULP below, whose
+    /// shortest form is `2.12463585`. Nothing downstream can catch that,
+    /// because `diff` compares post-parse values and the same faulty parser
+    /// maps both spellings onto the same wrong double, reporting agreement.
+    ///
+    /// The values are real ones lifted from a `~/.claude.json`, which is
+    /// where this was found: per-project `lastCost` telemetry.
+    #[test]
+    fn floats_round_trip_through_parse_and_serialize_bit_for_bit() {
+        for literal in [
+            "2.1246358499999998",
+            "98.25239124999995",
+            "0.20803199999954813",
+            "0.21105849999999998",
+            "0.36998699999999995",
+            "1.6927329733396421",
+        ] {
+            let text = format!("{{\"v\":{literal}}}");
+            let parsed = Json
+                .parse(&text, Path::new("f.json"), &ReadOpts::default())
+                .expect("parses");
+            let round_tripped = Json
+                .serialize(&parsed, &WriteOpts::default())
+                .expect("serialises");
+            let reparsed = Json
+                .parse(&round_tripped, Path::new("f.json"), &ReadOpts::default())
+                .expect("reparses");
+
+            // Compare against Rust's own correctly rounded parser, never
+            // against a second pass of the parser under test: a parser that
+            // is consistently wrong agrees with itself, which is precisely
+            // why this defect survives a naive round trip assertion.
+            let truth = literal.parse::<f64>().expect("std parses the literal");
+            let before = parsed["v"].as_f64().expect("f64");
+            let after = reparsed["v"].as_f64().expect("f64");
+
+            assert_eq!(
+                before.to_bits(),
+                truth.to_bits(),
+                "parse({literal}) gave {before:?}, want {truth:?}"
+            );
+            assert_eq!(
+                after.to_bits(),
+                truth.to_bits(),
+                "{literal} serialised as {round_tripped:?}, which reads back \
+                 as {after:?}, want {truth:?}"
+            );
+        }
+    }
 }
